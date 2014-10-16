@@ -10,18 +10,10 @@
 
 ; Script Start - Add your code below here
 
-#include <ButtonConstants.au3>
-#include <EditConstants.au3>
-#include <GUIConstantsEx.au3>
-#include <GUIListView.au3>
-#include <ListViewConstants.au3>
-#include <StaticConstants.au3>
-#include <WindowsConstants.au3>
-#include <FileConstants.au3>
-#include <MsgBoxConstants.au3>
+
 
 Opt("GUIOnEventMode", 1) ; Change to OnEvent mode
-
+Global $GUI_debug = 1
 
 
 
@@ -52,19 +44,123 @@ $tbExtractedText = GUICtrlCreateEdit("", 12, 234, 593, 173)
 $cbExtractText = GUICtrlCreateCheckbox("cbExtractText", 12, 210, 97, 17)
 GUISetOnEvent($GUI_EVENT_CLOSE, "CLOSEButton")
 GUICtrlSetOnEvent($btnOpenFile,"OpenFile")
+GUICtrlSetOnEvent($btnPageBack,"PageBack")
+GUICtrlSetOnEvent($btnPageForward,"PageForward")
 GUISetState(@SW_SHOW)
 #EndRegion ### END Koda GUI section ###
 
-While 1
-WEnd
+
 Func OpenFile()
 
-	FileOpenDialog("Select PDF File to Open",@ScriptDir,"PDF (*.pdf)")
+	$PdfFileName = FileOpenDialog("Select PDF File to Open",@ScriptDir,"PDF (*.pdf)")
+
+		If FileExists($PdfFileName) Then
+
+			If ($DebugFlag = 1 and $GUI_debug = 1 ) Then
+				DebugOut("GUI.au3",@ScriptLineNumber,$PdfFileName & " Exists.")
+			EndIf
+
+		$CurrentFileID = $PdfLibrary.LoadFromFile($PdfFileName,"")
+
+			If Not $CurrentFileID Then
+				GUICtrlSetData($tbFilename,"File Cannot Be Opened")
+
+					If ($DebugFlag = 1 and $GUI_debug = 1 ) Then
+						DebugOut("GUI.au3",@ScriptLineNumber,$PdfFileName & " Cannot Be Opened")
+					EndIf
+
+			Else
+				DebugOut("GUI.au3",@ScriptLineNumber,"Current File ID Is:" & $CurrentFileID)
+				$PdfLibrary.SelectPage(1)
+				$CurrentPageNumber = 1
+				$CurrentDocumentTotalPages = $PdfLibrary.PageCount()
+				$RawPageExtract =  StringSplit($PdfLibrary.GetPageText("3"),@CRLF,1)
+
+				GUICtrlSetData($tbExtractedText,$PdfLibrary.GetPageText("3"))
+				GUICtrlSetData($tbFilename,$PdfFileName)
+				GUICtrlSetData($tbPageNumber,$CurrentPageNumber)
+				GUICtrlSetData($tbTotalPages,$CurrentDocumentTotalPages)
+				UpdateListView($RawPageExtract)
+
+			EndIF
+
+
+
+
+		EndIf
+
 
 EndFunc
+
+Func PageBack()
+		If $CurrentPageNumber = 1 Then
+			$CurrentPageNumber = $CurrentDocumentTotalPages
+			GUICtrlSetData($tbPageNumber,$CurrentPageNumber)
+		Else
+			$CurrentPageNumber -=1
+			GUICtrlSetData($tbPageNumber,$CurrentPageNumber)
+		EndIf
+
+		$PdfLibrary.SelectPage($CurrentPageNumber)
+		$RawPageExtract =  StringSplit($PdfLibrary.GetPageText("3"),@CRLF,3)
+
+		GUICtrlSetData($tbExtractedText,$PdfLibrary.GetPageText("3"))
+		UpdateListView($RawPageExtract)
+EndFunc
+
+
+
+Func PageForward()
+		If $CurrentPageNumber = $CurrentDocumentTotalPages Then
+			$CurrentPageNumber = 1
+			GUICtrlSetData($tbPageNumber,$CurrentPageNumber)
+		Else
+			$CurrentPageNumber +=1
+			GUICtrlSetData($tbPageNumber,$CurrentPageNumber)
+		EndIf
+
+		$PdfLibrary.SelectPage($CurrentPageNumber)
+		$RawPageExtract =  StringSplit($PdfLibrary.GetPageText("3"),@CRLF,3)
+		GUICtrlSetData($tbExtractedText,$PdfLibrary.GetPageText("3"))
+		UpdateListView($RawPageExtract)
+EndFunc
+
 Func CLOSEButton()
-    ; Note: At this point @GUI_CtrlId would equal $GUI_EVENT_CLOSE,
-    ; and @GUI_WinHandle would equal $hMainGUI
-    ;MsgBox(0, "GUI Event", "You selected CLOSE! Exiting...")
+
+	If $DebugFlag = 1 Then
+
+		DebugOut("GUI.au3",@ScriptLineNumber,"Window Is Closed Close This Window")
+
+	EndIf
     Exit
 EndFunc   ;==>CLOSEButton
+
+Func UpdateListView(ByRef $PageDataArray)
+
+For $index = 0 to UBound($PageDataArray)-1
+
+	$DataArray = StringSplit($PageDataArray[$index],",",3)
+	If Ubound($DataArray) > 2 Then
+		_CLEAN_UP_COMMAS($DataArray)
+		GUICtrlCreateListViewItem($DataArray[11]&"|"&$DataArray[9]&"|"&$DataArray[10]&"|",$ListView1)
+	EndIf
+
+
+
+Next
+
+
+
+
+
+EndFunc
+Func _CLEAN_UP_COMMAS(ByRef $A_Array)
+	For $j = 0 To (UBound($A_Array) - 1) Step 1
+		If (StringLeft($A_Array[$j], 1) = '"' and StringRight($A_Array[$j], 1) <> '"') Then
+				$A_Array[$j] = $A_Array[$j] & "," & $A_Array[$j + 1]
+				_ArrayDelete($A_Array, ($j + 1))
+				_ArrayAdd($A_Array, "")
+				$j -= 1
+			EndIf
+Next
+EndFunc
