@@ -17,6 +17,14 @@
 #include <ListViewConstants.au3>
 #include <StaticConstants.au3>
 #include <WindowsConstants.au3>
+#include <FileConstants.au3>
+#include <MsgBoxConstants.au3>
+
+Opt("GUIOnEventMode", 1) ; Change to OnEvent mode
+
+
+
+
 #Region ### START Koda GUI section ### Form=C:\Git\Read-PDF-Text-To-Grid-Control\Koda\FrmMain.kxf
 $FrmMain = GUICreate("PDF To Grid", 615, 779, 192, 124)
 $ListView1 = GUICtrlCreateListView("Text|X Coord|Y Coord", 8, 424, 602, 342, BitOR($GUI_SS_DEFAULT_LISTVIEW,$LVS_AUTOARRANGE))
@@ -40,16 +48,23 @@ $lblxleft = GUICtrlCreateLabel("X Left", 18, 96, 32, 17)
 $lblxright = GUICtrlCreateLabel("X Right", 270, 93, 39, 17)
 $lblytop = GUICtrlCreateLabel("Y Top", 142, 71, 33, 17)
 $lblybottom = GUICtrlCreateLabel("Y Bottom", 145, 128, 47, 17)
-$tbExtractedText = GUICtrlCreateEdit("", 12, 234, 593, 173)s
+$tbExtractedText = GUICtrlCreateEdit("", 12, 234, 593, 173)
 $cbExtractText = GUICtrlCreateCheckbox("cbExtractText", 12, 210, 97, 17)
+GUISetOnEvent($GUI_EVENT_CLOSE, "CLOSEButton")
+GUICtrlSetOnEvent($btnOpenFile,"OpenFile")
 GUISetState(@SW_SHOW)
 #EndRegion ### END Koda GUI section ###
 
 While 1
-	$nMsg = GUIGetMsg()
-	Switch $nMsg
-		Case $GUI_EVENT_CLOSE
-			Exit
-
-	EndSwitch
 WEnd
+Func OpenFile()
+
+	FileOpenDialog("Select PDF File to Open",@ScriptDir,"PDF (*.pdf)")
+
+EndFunc
+Func CLOSEButton()
+    ; Note: At this point @GUI_CtrlId would equal $GUI_EVENT_CLOSE,
+    ; and @GUI_WinHandle would equal $hMainGUI
+    ;MsgBox(0, "GUI Event", "You selected CLOSE! Exiting...")
+    Exit
+EndFunc   ;==>CLOSEButton
