@@ -21,14 +21,15 @@ if $DebugFlag Then
 	SetupDebugSession()
 
 EndIf
-
+; _GUICtrlListView_RegisterSortCallBack($ListView1,1,1)
 
 Main()
 
-
+ ;_GUICtrlListView_UnRegisterSortCallBack($ListView1)
 Func Main()
 
 	While 1
+	sleep(1000)
 	WEnd
 
 EndFunc

@@ -20,6 +20,12 @@ Global $CurrentPageNumber
 Global $CurrentDocumentTotalPages
 Global $RawPageExtract
 
+;This is from Autoit help file to support sorting
+Global $g_iCurCol = -1
+Global $g_iSortDir = 1
+Global $g_bSet = False
+Global $g_iCol = -1
+
 #include <String.au3>
 #include <ButtonConstants.au3>
 #include <EditConstants.au3>

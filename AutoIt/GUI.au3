@@ -14,12 +14,15 @@
 
 Opt("GUIOnEventMode", 1) ; Change to OnEvent mode
 Global $GUI_debug = 1
+Dim $ListViewColumnOrder
+Dim $ListViewItemArray[0]
 
 
 
 #Region ### START Koda GUI section ### Form=C:\Git\Read-PDF-Text-To-Grid-Control\Koda\FrmMain.kxf
 $FrmMain = GUICreate("PDF To Grid", 615, 779, 192, 124)
 $ListView1 = GUICtrlCreateListView("Text|X Coord|Y Coord", 8, 424, 602, 342, BitOR($GUI_SS_DEFAULT_LISTVIEW,$LVS_AUTOARRANGE))
+;GUICtrlRegisterListViewSort(-1, "LVSort")
 GUICtrlSendMsg(-1, $LVM_SETCOLUMNWIDTH, 0, 50)
 GUICtrlSendMsg(-1, $LVM_SETCOLUMNWIDTH, 1, 50)
 GUICtrlSendMsg(-1, $LVM_SETCOLUMNWIDTH, 2, 50)
@@ -46,9 +49,16 @@ GUISetOnEvent($GUI_EVENT_CLOSE, "CLOSEButton")
 GUICtrlSetOnEvent($btnOpenFile,"OpenFile")
 GUICtrlSetOnEvent($btnPageBack,"PageBack")
 GUICtrlSetOnEvent($btnPageForward,"PageForward")
+GUICtrlSetOnEvent($ListView1,"sort")
+$ListViewColumnOrder = _GUICtrlListView_GetColumnOrderArray($ListView1)
 GUISetState(@SW_SHOW)
 #EndRegion ### END Koda GUI section ###
+;_GUICtrlListView_RegisterSortCallBack($ListView1,1,1)
+Func sort()
 
+_GUICtrlListView_SimpleSort($ListView1,$ListViewItemArray ,1 , 0)
+$ListViewColumnOrder = _GUICtrlListView_GetColumnOrderArray($ListView1)
+EndFunc
 
 Func OpenFile()
 
@@ -136,20 +146,28 @@ Func CLOSEButton()
 EndFunc   ;==>CLOSEButton
 
 Func UpdateListView(ByRef $PageDataArray)
+GUICtrlSetState($ListView1,$GUI_HIDE)
+	if ubound($ListViewItemArray) > 1 Then
+
+		for $ItemIndex = 0 to ubound($ListViewItemArray)-1
+			GUICtrlDelete($ListViewItemArray[$ItemIndex])
+		Next
+	Endif
+	ReDim $ListViewItemArray[ubound($PageDataArray)-1]
 
 For $index = 0 to UBound($PageDataArray)-1
 
 	$DataArray = StringSplit($PageDataArray[$index],",",3)
 	If Ubound($DataArray) > 2 Then
 		_CLEAN_UP_COMMAS($DataArray)
-		GUICtrlCreateListViewItem($DataArray[11]&"|"&$DataArray[9]&"|"&$DataArray[10]&"|",$ListView1)
+	$ListViewItemArray[$index] =	GUICtrlCreateListViewItem($DataArray[11]&"|"&$DataArray[9]&"|"&$DataArray[10]&"|",$ListView1)
 	EndIf
 
 
 
 Next
 
-
+GUICtrlSetState($ListView1,$GUI_SHOW)
 
 
 
@@ -164,3 +182,65 @@ Func _CLEAN_UP_COMMAS(ByRef $A_Array)
 			EndIf
 Next
 EndFunc
+;--------------------------------------------------------------------- From Help File To support sorting
+Func LVSort($hWnd, $nItem1, $nItem2, $iColumn)
+	Local $sVal1, $sVal2, $iResult
+
+	; Switch the sorting direction
+	If $iColumn = $g_iCurCol Then
+		If Not $g_bSet Then
+			$g_iSortDir = $g_iSortDir * -1
+			$g_bSet = True
+		EndIf
+	Else
+		$g_iSortDir = 1
+	EndIf
+	$g_iCol = $iColumn
+
+	$sVal1 = GetSubItemText($hWnd, $nItem1, $iColumn)
+	$sVal2 = GetSubItemText($hWnd, $nItem2, $iColumn)
+
+	; If it is the 3rd colum (column starts with 0) then compare the dates
+	If $iColumn = 2 Then
+		$sVal1 = StringRight($sVal1, 4) & StringMid($sVal1, 4, 2) & StringLeft($sVal1, 2)
+		$sVal2 = StringRight($sVal2, 4) & StringMid($sVal2, 4, 2) & StringLeft($sVal2, 2)
+	EndIf
+
+	$iResult = 0 ; No change of item1 and item2 positions
+
+	If $sVal1 < $sVal2 Then
+		$iResult = -1 ; Put item2 before item1
+	ElseIf $sVal1 > $sVal2 Then
+		$iResult = 1 ; Put item2 behind item1
+	EndIf
+
+	$iResult = $iResult * $g_iSortDir
+
+	Return $iResult
+EndFunc   ;==>LVSort
+
+; Retrieve the text of a listview item in a specified column
+Func GetSubItemText($idCtrl, $idItem, $iColumn)
+	Local $tLvfi = DllStructCreate("uint;ptr;int;int[2];int")
+
+	DllStructSetData($tLvfi, 1, $LVFI_PARAM)
+	DllStructSetData($tLvfi, 3, $idItem)
+
+	Local $tBuffer = DllStructCreate("char[260]")
+
+	Local $nIndex = GUICtrlSendMsg($idCtrl, $LVM_FINDITEM, -1, DllStructGetPtr($tLvfi));
+
+	Local $tLvi = DllStructCreate("uint;int;int;uint;uint;ptr;int;int;int;int")
+
+	DllStructSetData($tLvi, 1, $LVIF_TEXT)
+	DllStructSetData($tLvi, 2, $nIndex)
+	DllStructSetData($tLvi, 3, $iColumn)
+	DllStructSetData($tLvi, 6, DllStructGetPtr($tBuffer))
+	DllStructSetData($tLvi, 7, 260)
+
+	GUICtrlSendMsg($idCtrl, $LVM_GETITEMA, 0, DllStructGetPtr($tLvi));
+
+	Local $sItemText = DllStructGetData($tBuffer, 1)
+
+	Return $sItemText
+EndFunc   ;==>GetSubItemText
