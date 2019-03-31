@@ -20,7 +20,7 @@ Else
 
 EndIf
 
-If $PdfLibrary.UnlockKey("j564z3wi9i66k93cp3r798b3y") <> 1 Then
+If $PdfLibrary.UnlockKey("USEKEY") <> 1 Then
 		MsgBox(0, "Library Cannot Open", "ERROR")
 		Exit
 EndIf
